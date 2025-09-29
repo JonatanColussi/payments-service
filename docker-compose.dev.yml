@@ -17,8 +17,8 @@ services:
       - DATABASE_NAME=payments_db
       - TEMPORAL_SERVER_URL=temporal:7233
       - TEMPORAL_NAMESPACE=default
-      - MERCADOPAGO_ACCESS_TOKEN=APP_USR-7639895969324989-092908-29a76b93a0570b89017f6f04903fe8ab-2720512788
-      - MERCADOPAGO_PUBLIC_KEY=APP_USR-fe8040ce-fd1c-46b0-8400-14b046ad80f8
+      - MERCADOPAGO_ACCESS_TOKEN=APP_USR-xxxxxx
+      - MERCADOPAGO_PUBLIC_KEY=APP_USR-xxxxxxxx
       - MERCADOPAGO_WEBHOOK_URL=https://your-domain.ngrok.io/api/webhooks/mercadopago/notifications
       - PAYMENT_SUCCESS_URL=http://localhost:3001/payment/success
       - PAYMENT_FAILURE_URL=http://localhost:3001/payment/failure
