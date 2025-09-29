@@ -15,9 +15,7 @@ describe('UpdatePaymentStatusHandler', () => {
   const mockPaymentRepository = {
     save: jest.fn(),
     findById: jest.fn(),
-    findByCpf: jest.fn(),
-    findByStatus: jest.fn(),
-    findByCpfAndStatus: jest.fn(),
+    findByFilters: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
   };
@@ -46,7 +44,7 @@ describe('UpdatePaymentStatusHandler', () => {
     }).compile();
 
     handler = module.get<UpdatePaymentStatusHandler>(UpdatePaymentStatusHandler);
-    paymentRepository = module.get('IPaymentRepository');
+    paymentRepository = module.get(IPaymentRepository);
     eventPublisher = module.get(EventPublisher);
 
     // Reset mocks

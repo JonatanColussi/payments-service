@@ -13,9 +13,7 @@ describe('GetPaymentByIdHandler', () => {
   const mockPaymentRepository = {
     save: jest.fn(),
     findById: jest.fn(),
-    findByCpf: jest.fn(),
-    findByStatus: jest.fn(),
-    findByCpfAndStatus: jest.fn(),
+    findByFilters: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
   };
@@ -32,7 +30,7 @@ describe('GetPaymentByIdHandler', () => {
     }).compile();
 
     handler = module.get<GetPaymentByIdHandler>(GetPaymentByIdHandler);
-    paymentRepository = module.get('IPaymentRepository');
+    paymentRepository = module.get(IPaymentRepository);
 
     // Reset mocks
     jest.clearAllMocks();

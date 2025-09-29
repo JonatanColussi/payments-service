@@ -12,9 +12,6 @@ describe('GetPaymentsByFiltersHandler', () => {
   const mockPaymentRepository = {
     save: jest.fn(),
     findById: jest.fn(),
-    findByCpf: jest.fn(),
-    findByStatus: jest.fn(),
-    findByCpfAndStatus: jest.fn(),
     findByFilters: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
@@ -32,7 +29,7 @@ describe('GetPaymentsByFiltersHandler', () => {
     }).compile();
 
     handler = module.get<GetPaymentsByFiltersHandler>(GetPaymentsByFiltersHandler);
-    paymentRepository = module.get('IPaymentRepository');
+    paymentRepository = module.get(IPaymentRepository);
 
     // Reset mocks
     jest.clearAllMocks();
@@ -120,16 +117,14 @@ describe('GetPaymentsByFiltersHandler', () => {
       ];
 
       const query = new GetPaymentsByFiltersQuery({ status });
-      paymentRepository.findByStatus.mockResolvedValue(payments);
+      paymentRepository.findByFilters.mockResolvedValue(payments);
 
       // Act
       const result = await handler.execute(query);
 
       // Assert
-      expect(paymentRepository.findByStatus).toHaveBeenCalledWith(status);
-      expect(paymentRepository.findByStatus).toHaveBeenCalledTimes(1);
-      expect(paymentRepository.findByCpf).not.toHaveBeenCalled();
-      expect(paymentRepository.findByCpfAndStatus).not.toHaveBeenCalled();
+      expect(paymentRepository.findByFilters).toHaveBeenCalledWith({ status });
+      expect(paymentRepository.findByFilters).toHaveBeenCalledTimes(1);
 
       expect(result).toHaveLength(2);
       expect(result.every(p => p.status === PaymentStatus.PAID)).toBe(true);
@@ -164,7 +159,7 @@ describe('GetPaymentsByFiltersHandler', () => {
     it('should return empty array when no payments found', async () => {
       // Arrange
       const query = new GetPaymentsByFiltersQuery({ cpf: '33258752036' });
-      paymentRepository.findByCpf.mockResolvedValue([]);
+      paymentRepository.findByFilters.mockResolvedValue([]);
 
       // Act
       const result = await handler.execute(query);
@@ -183,7 +178,7 @@ describe('GetPaymentsByFiltersHandler', () => {
       ];
 
       const query = new GetPaymentsByFiltersQuery({ cpf });
-      paymentRepository.findByCpf.mockResolvedValue(payments);
+      paymentRepository.findByFilters.mockResolvedValue(payments);
 
       // Act
       const result = await handler.execute(query);
@@ -198,7 +193,7 @@ describe('GetPaymentsByFiltersHandler', () => {
       const query = new GetPaymentsByFiltersQuery({ cpf: '33258752036' });
       const repositoryError = new Error('Database connection failed');
 
-      paymentRepository.findByCpf.mockRejectedValue(repositoryError);
+      paymentRepository.findByFilters.mockRejectedValue(repositoryError);
 
       // Act & Assert
       await expect(handler.execute(query)).rejects.toThrow('Database connection failed');
@@ -222,7 +217,7 @@ describe('GetPaymentsByFiltersHandler', () => {
       );
 
       const query = new GetPaymentsByFiltersQuery({ cpf });
-      paymentRepository.findByCpf.mockResolvedValue([payment]);
+      paymentRepository.findByFilters.mockResolvedValue([payment]);
 
       // Act
       const result = await handler.execute(query);
@@ -247,13 +242,13 @@ describe('GetPaymentsByFiltersHandler', () => {
       ];
 
       const query = new GetPaymentsByFiltersQuery({ status });
-      paymentRepository.findByStatus.mockResolvedValue(payments);
+      paymentRepository.findByFilters.mockResolvedValue(payments);
 
       // Act
       const result = await handler.execute(query);
 
       // Assert
-      expect(paymentRepository.findByStatus).toHaveBeenCalledWith(PaymentStatus.FAIL);
+      expect(paymentRepository.findByFilters).toHaveBeenCalledWith({ status: PaymentStatus.FAIL });
       expect(result[0].status).toBe(PaymentStatus.FAIL);
     });
 
@@ -268,7 +263,7 @@ describe('GetPaymentsByFiltersHandler', () => {
       ];
 
       const query = new GetPaymentsByFiltersQuery({ cpf, status });
-      paymentRepository.findByCpfAndStatus.mockResolvedValue(payments);
+      paymentRepository.findByFilters.mockResolvedValue(payments);
 
       // Act
       const result = await handler.execute(query);
@@ -285,7 +280,7 @@ describe('GetPaymentsByFiltersHandler', () => {
       );
 
       const query = new GetPaymentsByFiltersQuery({});
-      paymentRepository.findByStatus.mockResolvedValue(payments);
+      paymentRepository.findByFilters.mockResolvedValue(payments);
 
       // Act
       const result = await handler.execute(query);

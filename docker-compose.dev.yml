@@ -1,4 +1,42 @@
+version: '3.8'
+
 services:
+  # Aplicação NestJS
+  payments-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: payments-api
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_USERNAME=postgres
+      - DATABASE_PASSWORD=password
+      - DATABASE_NAME=payments_db
+      - TEMPORAL_SERVER_URL=temporal:7233
+      - TEMPORAL_NAMESPACE=default
+      - MERCADOPAGO_ACCESS_TOKEN=APP_USR-7639895969324989-092908-29a76b93a0570b89017f6f04903fe8ab-2720512788
+      - MERCADOPAGO_PUBLIC_KEY=APP_USR-fe8040ce-fd1c-46b0-8400-14b046ad80f8
+      - MERCADOPAGO_WEBHOOK_URL=https://your-domain.ngrok.io/api/webhooks/mercadopago/notifications
+      - PAYMENT_SUCCESS_URL=http://localhost:3001/payment/success
+      - PAYMENT_FAILURE_URL=http://localhost:3001/payment/failure
+      - PAYMENT_PENDING_URL=http://localhost:3001/payment/pending
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    networks:
+      - payments-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      temporal:
+        condition: service_healthy
+    command: npm run start:dev
+
   # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
@@ -44,7 +82,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # Temporal Server (configuração simplificada)
+  # Temporal Server
   temporal:
     image: temporalio/auto-setup:1.22.0
     container_name: temporal-server
@@ -54,7 +92,7 @@ services:
         condition: service_healthy
     environment:
       - DB=postgresql
-      - DB_PORT=5432
+      - DB_PORT=5433
       - POSTGRES_USER=temporal
       - POSTGRES_PWD=temporal
       - POSTGRES_SEEDS=temporal-postgres
@@ -63,7 +101,6 @@ services:
       - ENABLE_TLS=false
       - TEMPORAL_BROADCAST_ADDRESS=0.0.0.0
       - TEMPORAL_CLI_SHOW_STACKS=1
-      - LOG_LEVEL=info
     ports:
       - "7233:7233"  # gRPC
       - "7234:7234"  # Membership
@@ -72,11 +109,10 @@ services:
     networks:
       - payments-network
     healthcheck:
-      test: ["CMD-SHELL", "tctl cluster health | grep SERVING || exit 1"]
-      interval: 10s
-      timeout: 10s
-      retries: 10
-      start_period: 30s
+      test: ["CMD", "temporal", "operator", "cluster", "health"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
 
   # Temporal Web UI
   temporal-ui:
@@ -95,7 +131,7 @@ services:
     networks:
       - payments-network
 
-  # Redis para cache (opcional, mas recomendado para produção)
+  # Redis para cache
   redis:
     image: redis:7-alpine
     container_name: payments-redis

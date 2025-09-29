@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database Principal
+  postgres:
+    image: postgres:16-alpine
+    container_name: payments-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: payments_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_HOST_AUTH_METHOD: md5
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - payments-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d payments_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Temporal Development Server (all-in-one)
+  temporal-dev:
+    image: temporalio/auto-setup:1.22.0
+    container_name: temporal-dev
+    restart: unless-stopped
+    environment:
+      - DB=sqlite
+      - SQLITE_DB=/tmp/temporal.db
+      - ENABLE_AUTHORIZATION=false
+      - ENABLE_TLS=false
+      - TEMPORAL_BROADCAST_ADDRESS=0.0.0.0
+      - TEMPORAL_CLI_SHOW_STACKS=1
+      - LOG_LEVEL=info
+    ports:
+      - "7233:7233"  # gRPC
+      - "8081:8080"  # Web UI
+    networks:
+      - payments-network
+    healthcheck:
+      test: ["CMD-SHELL", "temporal workflow list --namespace default || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  # Redis para cache
+  redis:
+    image: redis:7-alpine
+    container_name: payments-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - payments-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  payments-network:
+    driver: bridge

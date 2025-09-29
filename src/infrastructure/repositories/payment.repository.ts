@@ -26,30 +26,6 @@ export class PaymentRepository extends IPaymentRepository {
     return ormEntity ? PaymentMapper.toDomain(ormEntity) : null;
   }
 
-  async findByCpf(cpf: string): Promise<Payment[]> {
-    const ormEntities = await this.ormRepository.find({
-      where: { cpf },
-      order: { createdAt: 'DESC' },
-    });
-    return ormEntities.map(PaymentMapper.toDomain);
-  }
-
-  async findByStatus(status: string): Promise<Payment[]> {
-    const ormEntities = await this.ormRepository.find({
-      where: { status: status as any },
-      order: { createdAt: 'DESC' },
-    });
-    return ormEntities.map(PaymentMapper.toDomain);
-  }
-
-  async findByCpfAndStatus(cpf: string, status: string): Promise<Payment[]> {
-    const ormEntities = await this.ormRepository.find({
-      where: { cpf, status: status as any },
-      order: { createdAt: 'DESC' },
-    });
-    return ormEntities.map(PaymentMapper.toDomain);
-  }
-
   async findByFilters(filters: PaymentFilters): Promise<Payment[]> {
     // Validar filtros usando método da classe abstrata
     this.validateFilters(filters);

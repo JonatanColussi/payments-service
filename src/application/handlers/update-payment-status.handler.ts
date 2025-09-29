@@ -1,5 +1,5 @@
 import { CommandHandler, EventPublisher, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { UpdatePaymentStatusCommand } from '../commands';
 import { IPaymentRepository } from '../../domain/interfaces';
 import { PaymentResponseDto } from '../dtos';
@@ -8,7 +8,6 @@ import { PaymentResponseDto } from '../dtos';
 @CommandHandler(UpdatePaymentStatusCommand)
 export class UpdatePaymentStatusHandler implements ICommandHandler<UpdatePaymentStatusCommand> {
   constructor(
-    @Inject('IPaymentRepository')
     private readonly paymentRepository: IPaymentRepository,
     private readonly publisher: EventPublisher,
   ) {}

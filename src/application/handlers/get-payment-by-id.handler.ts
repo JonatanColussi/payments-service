@@ -1,5 +1,5 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { GetPaymentByIdQuery } from '../queries';
 import { IPaymentRepository } from '../../domain/interfaces';
 import { PaymentResponseDto } from '../dtos';
@@ -8,7 +8,6 @@ import { PaymentResponseDto } from '../dtos';
 @QueryHandler(GetPaymentByIdQuery)
 export class GetPaymentByIdHandler implements IQueryHandler<GetPaymentByIdQuery> {
   constructor(
-    @Inject('IPaymentRepository')
     private readonly paymentRepository: IPaymentRepository,
   ) {}
 

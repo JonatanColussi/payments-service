@@ -8,9 +8,6 @@ export interface PaymentFilters {
 export abstract class IPaymentRepository {
   abstract save(payment: Payment): Promise<Payment>;
   abstract findById(id: string): Promise<Payment | null>;
-  abstract findByCpf(cpf: string): Promise<Payment[]>;
-  abstract findByStatus(status: string): Promise<Payment[]>;
-  abstract findByCpfAndStatus(cpf: string, status: string): Promise<Payment[]>;
   abstract findByFilters(filters: PaymentFilters): Promise<Payment[]>;
   abstract update(payment: Payment): Promise<Payment>;
   abstract delete(id: string): Promise<void>;

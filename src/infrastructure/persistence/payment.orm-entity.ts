@@ -22,7 +22,18 @@ export class PaymentOrmEntity {
   @Column('varchar', { length: 500 })
   description: string;
 
-  @Column('decimal', { precision: 10, scale: 2 })
+  @Column('decimal', {
+    precision: 10,
+    scale: 2,
+    transformer: {
+      to(value) {
+        return value;
+      },
+      from(value) {
+        return parseFloat(value);
+      },
+    },
+  })
   amount: number;
 
   @Column({

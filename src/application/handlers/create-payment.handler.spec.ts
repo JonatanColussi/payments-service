@@ -5,6 +5,7 @@ import { CreatePaymentCommand } from '../commands';
 import { IPaymentRepository } from '../../domain/interfaces';
 import { CPF, Money, Payment, PaymentMethod, PaymentStatus } from '../../domain';
 import { PaymentResponseDto } from '../dtos';
+import { IPaymentWorkflowService } from '../interfaces/payment-workflow.interface';
 
 describe('CreatePaymentHandler', () => {
   let handler: CreatePaymentHandler;
@@ -14,9 +15,7 @@ describe('CreatePaymentHandler', () => {
   const mockPaymentRepository = {
     save: jest.fn(),
     findById: jest.fn(),
-    findByCpf: jest.fn(),
-    findByStatus: jest.fn(),
-    findByCpfAndStatus: jest.fn(),
+    findByFilters: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
   };
@@ -27,6 +26,14 @@ describe('CreatePaymentHandler', () => {
 
   const mockPaymentModel = {
     commit: jest.fn(),
+  };
+
+  const mockTemporalWorkflowService = {
+    startCreditCardPaymentWorkflow: jest.fn(),
+    notifyPaymentStatus: jest.fn(),
+    cancelPayment: jest.fn(),
+    getPaymentWorkflowState: jest.fn(),
+    listActivePaymentWorkflows: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -41,16 +48,27 @@ describe('CreatePaymentHandler', () => {
           provide: EventPublisher,
           useValue: mockEventPublisher,
         },
+        {
+          provide: IPaymentWorkflowService,
+          useValue: mockTemporalWorkflowService,
+        },
       ],
     }).compile();
 
     handler = module.get<CreatePaymentHandler>(CreatePaymentHandler);
-    paymentRepository = module.get('IPaymentRepository');
+    paymentRepository = module.get(IPaymentRepository);
     eventPublisher = module.get(EventPublisher);
 
     // Reset mocks
     jest.clearAllMocks();
     mockEventPublisher.mergeObjectContext.mockReturnValue(mockPaymentModel);
+    
+    // Setup default mock return values
+    mockTemporalWorkflowService.startCreditCardPaymentWorkflow.mockResolvedValue({
+      workflowId: 'test-workflow-id',
+      runId: 'test-run-id',
+      preferenceUrl: 'https://mercadopago.com/test-preference'
+    });
   });
 
   describe('execute', () => {
@@ -187,25 +205,24 @@ describe('CreatePaymentHandler', () => {
         PaymentMethod.CREDIT_CARD
       );
 
-      const cpfVO = new CPF(creditCardCommand.cpf);
-      const amountVO = new Money(creditCardCommand.amount);
-
-      const savedPayment = Payment.create(
-        'test-id',
-        cpfVO,
-        creditCardCommand.description,
-        amountVO,
-        creditCardCommand.paymentMethod
-      );
-
-      paymentRepository.save.mockResolvedValue(savedPayment);
-
       // Act
       const result = await handler.execute(creditCardCommand);
 
       // Assert
       expect(result.paymentMethod).toBe(PaymentMethod.CREDIT_CARD);
-      expect(paymentRepository.save).toHaveBeenCalledTimes(1);
+      expect(result.status).toBe('PENDING');
+      expect(mockTemporalWorkflowService.startCreditCardPaymentWorkflow).toHaveBeenCalledWith({
+        paymentId: expect.any(String),
+        cpf: '33258752036',
+        description: 'Credit card payment',
+        amount: 1000.00,
+        payer: {
+          email: undefined,
+          name: undefined
+        }
+      });
+      // Credit card payments should NOT call repository.save directly
+      expect(paymentRepository.save).not.toHaveBeenCalled();
     });
 
     it('should handle repository save error', async () => {
@@ -252,19 +269,6 @@ describe('CreatePaymentHandler', () => {
         PaymentMethod.CREDIT_CARD
       );
 
-      const cpfVO = new CPF(testCommand.cpf);
-      const amountVO = new Money(testCommand.amount);
-
-      const savedPayment = Payment.create(
-        'test-id',
-        cpfVO,
-        testCommand.description,
-        amountVO,
-        testCommand.paymentMethod
-      );
-
-      paymentRepository.save.mockResolvedValue(savedPayment);
-
       // Act
       const result = await handler.execute(testCommand);
 
@@ -273,6 +277,10 @@ describe('CreatePaymentHandler', () => {
       expect(result.description).toBe('Specific test payment description');
       expect(result.amount).toBe(250.75);
       expect(result.paymentMethod).toBe(PaymentMethod.CREDIT_CARD);
+      expect(result.status).toBe('PENDING');
+      expect(typeof result.id).toBe('string');
+      expect(result.createdAt).toBeInstanceOf(Date);
+      expect(result.updatedAt).toBeInstanceOf(Date);
     });
   });
 });
