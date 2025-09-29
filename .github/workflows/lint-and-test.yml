@@ -1,0 +1,102 @@
+name: Lint and Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  lint-and-test:
+    name: Lint and Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: payments_db_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_HOST_AUTH_METHOD: md5
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run ESLint
+      run: npm run lint
+
+    - name: Run Prettier check
+      run: npm run format -- --check
+
+    - name: Run TypeScript compilation
+      run: npm run build
+
+    - name: Run unit tests
+      run: npm run test
+      env:
+        NODE_ENV: test
+        DATABASE_HOST: localhost
+        DATABASE_PORT: 5432
+        DATABASE_NAME: payments_db_test
+        DATABASE_USER: postgres
+        DATABASE_PASSWORD: password
+        DATABASE_SSL: false
+        DATABASE_LOGGING: false
+        DATABASE_SYNCHRONIZE: true
+        MERCADOPAGO_ACCESS_TOKEN: test_token
+        MERCADOPAGO_WEBHOOK_URL: http://localhost:3000/webhook/mercadopago
+        PAYMENT_SUCCESS_URL: http://localhost:3000/success
+        PAYMENT_FAILURE_URL: http://localhost:3000/failure
+        PAYMENT_PENDING_URL: http://localhost:3000/pending
+        TEMPORAL_ADDRESS: localhost:7233
+        REDIS_HOST: localhost
+        REDIS_PORT: 6379
+
+    - name: Run test coverage
+      run: npm run test:cov
+      env:
+        NODE_ENV: test
+        DATABASE_HOST: localhost
+        DATABASE_PORT: 5432
+        DATABASE_NAME: payments_db_test
+        DATABASE_USER: postgres
+        DATABASE_PASSWORD: password
+        DATABASE_SSL: false
+        DATABASE_LOGGING: false
+        DATABASE_SYNCHRONIZE: true
+        MERCADOPAGO_ACCESS_TOKEN: test_token
+        MERCADOPAGO_WEBHOOK_URL: http://localhost:3000/webhook/mercadopago
+        PAYMENT_SUCCESS_URL: http://localhost:3000/success
+        PAYMENT_FAILURE_URL: http://localhost:3000/failure
+        PAYMENT_PENDING_URL: http://localhost:3000/pending
+        TEMPORAL_ADDRESS: localhost:7233
+        REDIS_HOST: localhost
+        REDIS_PORT: 6379

@@ -444,13 +444,40 @@ npm run start:debug
 npm run test:debug
 ```
 
+## 🔄 Continuous Integration
+
+This project uses GitHub Actions for automated CI/CD:
+
+### Workflows
+
+#### Lint and Test (`lint-and-test.yml`)
+- **Triggers**: Push/PR to `main` or `develop` branches
+- **Services**: PostgreSQL 16, Redis 7
+- **Steps**:
+  - ESLint code quality checks
+  - Prettier formatting validation
+  - TypeScript compilation
+  - Unit tests with coverage
+  - Test coverage reporting
+
+#### Full CI/CD Pipeline (`ci.yml`)
+- **Matrix Testing**: Node.js 18.x and 20.x
+- **Comprehensive Testing**: Unit, E2E, and integration tests
+- **Security Audit**: Dependency vulnerability scanning
+- **Docker Build**: Container image testing
+- **Coverage Reports**: Codecov integration
+
+### Workflow Status
+[![CI/CD Pipeline](https://github.com/JonatanColussi/payments-service/workflows/CI%2FCD%20Pipeline/badge.svg)](https://github.com/JonatanColussi/payments-service/actions)
+[![Lint and Test](https://github.com/JonatanColussi/payments-service/workflows/Lint%20and%20Test/badge.svg)](https://github.com/JonatanColussi/payments-service/actions)
+
 ## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
 4. Add tests for new functionality
-5. Ensure all tests pass
+5. Ensure all tests pass (GitHub Actions will run automatically)
 6. Submit a pull request
 
 ### Development Guidelines
@@ -459,6 +486,7 @@ npm run test:debug
 - Use TypeScript strict mode
 - Follow ESLint and Prettier configurations
 - Document new features and APIs
+- Ensure CI/CD pipeline passes before merging
 
 ## 📄 License
 
