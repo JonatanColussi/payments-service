@@ -22,8 +22,8 @@ export class CreatePaymentHandler implements ICommandHandler<CreatePaymentComman
     const cpfVO = new CPF(cpf);
     const amountVO = new Money(amount);
 
-    PaymentValidationService.validatePaymentAmount(amountVO, paymentMethod);
     PaymentValidationService.validatePaymentMethod(paymentMethod);
+    PaymentValidationService.validatePaymentAmount(amountVO, paymentMethod);
     PaymentValidationService.validateDescription(description);
 
     // Create domain entity
