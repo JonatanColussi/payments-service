@@ -88,7 +88,10 @@ export class DatabaseConfigBuilder {
     const baseConfig = this.buildBaseConfig();
     return {
       ...baseConfig,
-      entities: ['src/**/*.entity{.ts,.js}'],
+      entities: [
+        'src/**/*.entity{.ts,.js}',
+        'src/**/*.orm-entity{.ts,.js}'
+      ],
       migrations: ['src/database/migrations/*{.ts,.js}'],
       subscribers: ['src/**/*.subscriber{.ts,.js}'],
       synchronize: false, // Always false for CLI operations
@@ -102,7 +105,10 @@ export class DatabaseConfigBuilder {
     const baseConfig = this.buildBaseConfig();
     return {
       ...baseConfig,
-      entities: [__dirname + '/../**/*.entity{.ts,.js}'],
+      entities: [
+        __dirname + '/../**/*.entity{.ts,.js}',
+        __dirname + '/../**/*.orm-entity{.ts,.js}'
+      ],
       migrations: [__dirname + '/../database/migrations/*{.ts,.js}'],
       subscribers: [__dirname + '/../**/*.subscriber{.ts,.js}'],
       migrationsRun: this.parseBoolean(process.env.DATABASE_MIGRATIONS_RUN),

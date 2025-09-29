@@ -1,9 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { HealthModule } from './health/health.module';
+import { PaymentModule } from './payment/payment.module';
 import databaseConfig from './config/database.config';
 
 @Module({
@@ -17,8 +16,7 @@ import databaseConfig from './config/database.config';
       useFactory: () => databaseConfig(),
     }),
     HealthModule,
+    PaymentModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
 })
 export class AppModule {}
