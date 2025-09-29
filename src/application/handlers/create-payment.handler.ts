@@ -1,5 +1,5 @@
 import { CommandHandler, EventPublisher, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CreatePaymentCommand } from '../commands';
 import { Payment, CPF, Money, PaymentValidationService } from '../../domain';
 import { IPaymentRepository } from '../../domain/interfaces';
@@ -10,7 +10,6 @@ import { v4 as uuidv4 } from 'uuid';
 @CommandHandler(CreatePaymentCommand)
 export class CreatePaymentHandler implements ICommandHandler<CreatePaymentCommand> {
   constructor(
-    @Inject('IPaymentRepository')
     private readonly paymentRepository: IPaymentRepository,
     private readonly publisher: EventPublisher,
   ) {}

@@ -2,16 +2,18 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Payment } from '../../domain';
-import { IPaymentRepository } from '../../domain/interfaces';
+import { IPaymentRepository, PaymentFilters } from '../../domain/interfaces';
 import { PaymentOrmEntity } from '../persistence/payment.orm-entity';
 import { PaymentMapper } from '../persistence/payment.mapper';
 
 @Injectable()
-export class PaymentRepository implements IPaymentRepository {
+export class PaymentRepository extends IPaymentRepository {
   constructor(
     @InjectRepository(PaymentOrmEntity)
     private readonly ormRepository: Repository<PaymentOrmEntity>,
-  ) {}
+  ) {
+    super();
+  }
 
   async save(payment: Payment): Promise<Payment> {
     const ormEntity = PaymentMapper.toPersistence(payment);
@@ -48,18 +50,33 @@ export class PaymentRepository implements IPaymentRepository {
     return ormEntities.map(PaymentMapper.toDomain);
   }
 
+  async findByFilters(filters: PaymentFilters): Promise<Payment[]> {
+    // Validar filtros usando método da classe abstrata
+    this.validateFilters(filters);
+
+    // Construir condição usando método helper da classe abstrata
+    const whereCondition = this.buildFiltersCondition(filters);
+
+    const ormEntities = await this.ormRepository.find({
+      where: whereCondition,
+      order: { createdAt: 'DESC' },
+    });
+
+    return ormEntities.map(PaymentMapper.toDomain);
+  }
+
   async update(payment: Payment): Promise<Payment> {
     const updateData = PaymentMapper.toPartialPersistence(payment);
     await this.ormRepository.update(payment.id, updateData);
-    
-    const updatedEntity = await this.ormRepository.findOne({ 
-      where: { id: payment.id } 
+
+    const updatedEntity = await this.ormRepository.findOne({
+      where: { id: payment.id }
     });
-    
+
     if (!updatedEntity) {
       throw new Error(`Payment with ID ${payment.id} not found after update`);
     }
-    
+
     return PaymentMapper.toDomain(updatedEntity);
   }
 

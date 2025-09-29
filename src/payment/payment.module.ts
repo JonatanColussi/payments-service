@@ -20,6 +20,7 @@ import { PaymentOrmEntity, PaymentRepository } from '../infrastructure';
 
 // Presentation
 import { PaymentController } from '../presentation/controllers/payment.controller';
+import { IPaymentRepository } from '../domain';
 
 const CommandHandlers = [
   CreatePaymentHandler,
@@ -53,7 +54,7 @@ const EventHandlers = [
 
     // Infrastructure
     {
-      provide: 'IPaymentRepository',
+      provide: IPaymentRepository,
       useClass: PaymentRepository,
     },
   ],

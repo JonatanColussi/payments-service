@@ -34,7 +34,7 @@ describe('CreatePaymentHandler', () => {
       providers: [
         CreatePaymentHandler,
         {
-          provide: 'IPaymentRepository',
+          provide: IPaymentRepository,
           useValue: mockPaymentRepository,
         },
         {

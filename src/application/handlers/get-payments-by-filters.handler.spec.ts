@@ -15,6 +15,7 @@ describe('GetPaymentsByFiltersHandler', () => {
     findByCpf: jest.fn(),
     findByStatus: jest.fn(),
     findByCpfAndStatus: jest.fn(),
+    findByFilters: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
   };
@@ -24,7 +25,7 @@ describe('GetPaymentsByFiltersHandler', () => {
       providers: [
         GetPaymentsByFiltersHandler,
         {
-          provide: 'IPaymentRepository',
+          provide: IPaymentRepository,
           useValue: mockPaymentRepository,
         },
       ],
@@ -67,16 +68,14 @@ describe('GetPaymentsByFiltersHandler', () => {
       ];
 
       const query = new GetPaymentsByFiltersQuery({ cpf, status });
-      paymentRepository.findByCpfAndStatus.mockResolvedValue(payments);
+      paymentRepository.findByFilters.mockResolvedValue(payments);
 
       // Act
       const result = await handler.execute(query);
 
       // Assert
-      expect(paymentRepository.findByCpfAndStatus).toHaveBeenCalledWith(cpf, status);
-      expect(paymentRepository.findByCpfAndStatus).toHaveBeenCalledTimes(1);
-      expect(paymentRepository.findByCpf).not.toHaveBeenCalled();
-      expect(paymentRepository.findByStatus).not.toHaveBeenCalled();
+      expect(paymentRepository.findByFilters).toHaveBeenCalledWith({ cpf, status });
+      expect(paymentRepository.findByFilters).toHaveBeenCalledTimes(1);
 
       expect(result).toHaveLength(2);
       expect(result[0]).toBeInstanceOf(PaymentResponseDto);
@@ -95,16 +94,14 @@ describe('GetPaymentsByFiltersHandler', () => {
       ];
 
       const query = new GetPaymentsByFiltersQuery({ cpf });
-      paymentRepository.findByCpf.mockResolvedValue(payments);
+      paymentRepository.findByFilters.mockResolvedValue(payments);
 
       // Act
       const result = await handler.execute(query);
 
       // Assert
-      expect(paymentRepository.findByCpf).toHaveBeenCalledWith(cpf);
-      expect(paymentRepository.findByCpf).toHaveBeenCalledTimes(1);
-      expect(paymentRepository.findByCpfAndStatus).not.toHaveBeenCalled();
-      expect(paymentRepository.findByStatus).not.toHaveBeenCalled();
+      expect(paymentRepository.findByFilters).toHaveBeenCalledWith({ cpf });
+      expect(paymentRepository.findByFilters).toHaveBeenCalledTimes(1);
 
       expect(result).toHaveLength(3);
       expect(result.map(p => p.status)).toEqual([
@@ -138,25 +135,30 @@ describe('GetPaymentsByFiltersHandler', () => {
       expect(result.every(p => p.status === PaymentStatus.PAID)).toBe(true);
     });
 
-    it('should return PENDING payments when no filters provided', async () => {
+    it('should return all payments when no filters provided', async () => {
       // Arrange
       const payments = [
         createMockPayment('1', validCPF1, PaymentStatus.PENDING),
-        createMockPayment('2', validCPF2, PaymentStatus.PENDING),
+        createMockPayment('2', validCPF2, PaymentStatus.PAID),
+        createMockPayment('3', validCPF1, PaymentStatus.FAIL),
       ];
 
       const query = new GetPaymentsByFiltersQuery({});
-      paymentRepository.findByStatus.mockResolvedValue(payments);
+      paymentRepository.findByFilters.mockResolvedValue(payments);
 
       // Act
       const result = await handler.execute(query);
 
       // Assert
-      expect(paymentRepository.findByStatus).toHaveBeenCalledWith(PaymentStatus.PENDING);
-      expect(paymentRepository.findByStatus).toHaveBeenCalledTimes(1);
+      expect(paymentRepository.findByFilters).toHaveBeenCalledWith({});
+      expect(paymentRepository.findByFilters).toHaveBeenCalledTimes(1);
 
-      expect(result).toHaveLength(2);
-      expect(result.every(p => p.status === PaymentStatus.PENDING)).toBe(true);
+      expect(result).toHaveLength(3);
+      expect(result.map(p => p.status)).toEqual([
+        PaymentStatus.PENDING,
+        PaymentStatus.PAID,
+        PaymentStatus.FAIL
+      ]);
     });
 
     it('should return empty array when no payments found', async () => {

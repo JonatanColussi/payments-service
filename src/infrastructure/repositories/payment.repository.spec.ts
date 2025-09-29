@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { PaymentRepository } from './payment.repository';
 import { PaymentOrmEntity } from '../persistence/payment.orm-entity';
 import { Payment, PaymentMethod, PaymentStatus, CPF, Money } from '../../domain';
+import { PaymentFilters } from '../../domain/interfaces';
 
 describe('PaymentRepository', () => {
   let repository: PaymentRepository;
@@ -330,6 +331,184 @@ describe('PaymentRepository', () => {
 
       // Assert
       expect(result).toEqual([]);
+    });
+  });
+
+  describe('findByFilters', () => {
+    it('should find payments by CPF and status filters', async () => {
+      // Arrange
+      const filters: PaymentFilters = {
+        cpf: '33258752036',
+        status: PaymentStatus.PAID
+      };
+
+      const ormEntities = [
+        createMockOrmEntity({
+          id: 'filtered-payment',
+          cpf: '33258752036',
+          status: PaymentStatus.PAID
+        }),
+      ];
+
+      ormRepository.find.mockResolvedValue(ormEntities);
+
+      // Act
+      const result = await repository.findByFilters(filters);
+
+      // Assert
+      expect(ormRepository.find).toHaveBeenCalledWith({
+        where: { cpf: '33258752036', status: PaymentStatus.PAID },
+        order: { createdAt: 'DESC' },
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].cpf.getValue()).toBe('33258752036');
+      expect(result[0].status).toBe(PaymentStatus.PAID);
+    });
+
+    it('should find payments by CPF filter only', async () => {
+      // Arrange
+      const filters: PaymentFilters = {
+        cpf: '33258752036'
+      };
+
+      const ormEntities = [
+        createMockOrmEntity({ id: 'payment-1', cpf: '33258752036', status: PaymentStatus.PENDING }),
+        createMockOrmEntity({ id: 'payment-2', cpf: '33258752036', status: PaymentStatus.PAID }),
+      ];
+
+      ormRepository.find.mockResolvedValue(ormEntities);
+
+      // Act
+      const result = await repository.findByFilters(filters);
+
+      // Assert
+      expect(ormRepository.find).toHaveBeenCalledWith({
+        where: { cpf: '33258752036' },
+        order: { createdAt: 'DESC' },
+      });
+
+      expect(result).toHaveLength(2);
+      expect(result.every(p => p.cpf.getValue() === '33258752036')).toBe(true);
+    });
+
+    it('should find payments by status filter only', async () => {
+      // Arrange
+      const filters: PaymentFilters = {
+        status: PaymentStatus.PAID
+      };
+
+      const ormEntities = [
+        createMockOrmEntity({ id: 'payment-1', status: PaymentStatus.PAID }),
+        createMockOrmEntity({ id: 'payment-2', status: PaymentStatus.PAID }),
+      ];
+
+      ormRepository.find.mockResolvedValue(ormEntities);
+
+      // Act
+      const result = await repository.findByFilters(filters);
+
+      // Assert
+      expect(ormRepository.find).toHaveBeenCalledWith({
+        where: { status: PaymentStatus.PAID },
+        order: { createdAt: 'DESC' },
+      });
+
+      expect(result).toHaveLength(2);
+      expect(result.every(p => p.status === PaymentStatus.PAID)).toBe(true);
+    });
+
+    it('should return all payments when no filters provided', async () => {
+      // Arrange
+      const filters: PaymentFilters = {};
+
+      const ormEntities = [
+        createMockOrmEntity({ id: 'payment-1', status: PaymentStatus.PENDING }),
+        createMockOrmEntity({ id: 'payment-2', status: PaymentStatus.PAID }),
+        createMockOrmEntity({ id: 'payment-3', status: PaymentStatus.FAIL }),
+      ];
+
+      ormRepository.find.mockResolvedValue(ormEntities);
+
+      // Act
+      const result = await repository.findByFilters(filters);
+
+      // Assert
+      expect(ormRepository.find).toHaveBeenCalledWith({
+        where: {},
+        order: { createdAt: 'DESC' },
+      });
+
+      expect(result).toHaveLength(3);
+      expect(result.map(p => p.status)).toEqual([
+        PaymentStatus.PENDING,
+        PaymentStatus.PAID,
+        PaymentStatus.FAIL
+      ]);
+    });
+
+    it('should return empty array when no payments match filters', async () => {
+      // Arrange
+      const filters: PaymentFilters = {
+        cpf: '33258752036',
+        status: PaymentStatus.FAIL
+      };
+
+      ormRepository.find.mockResolvedValue([]);
+
+      // Act
+      const result = await repository.findByFilters(filters);
+
+      // Assert
+      expect(result).toEqual([]);
+    });
+
+    it('should handle repository errors', async () => {
+      // Arrange
+      const filters: PaymentFilters = { cpf: '33258752036' };
+      const error = new Error('Database query failed');
+
+      ormRepository.find.mockRejectedValue(error);
+
+      // Act & Assert
+      await expect(repository.findByFilters(filters)).rejects.toThrow('Database query failed');
+    });
+
+    it('should validate filters and throw error for invalid CPF', async () => {
+      // Arrange
+      const filters: PaymentFilters = { cpf: '123' }; // CPF inválido
+
+      // Act & Assert
+      await expect(repository.findByFilters(filters)).rejects.toThrow('CPF deve conter exatamente 11 dígitos numéricos');
+    });
+
+    it('should validate filters and throw error for non-numeric CPF', async () => {
+      // Arrange
+      const filters: PaymentFilters = { cpf: '1234567890a' }; // CPF com letra
+
+      // Act & Assert
+      await expect(repository.findByFilters(filters)).rejects.toThrow('CPF deve conter exatamente 11 dígitos numéricos');
+    });
+
+    it('should validate filters and throw error for invalid status', async () => {
+      // Arrange
+      const filters: PaymentFilters = { status: 'INVALID_STATUS' as PaymentStatus };
+
+      // Act & Assert
+      await expect(repository.findByFilters(filters)).rejects.toThrow('Status de pagamento inválido');
+    });
+
+    it('should accept valid filters without throwing', async () => {
+      // Arrange
+      const filters: PaymentFilters = {
+        cpf: '33258752036',
+        status: PaymentStatus.PAID
+      };
+
+      ormRepository.find.mockResolvedValue([]);
+
+      // Act & Assert
+      await expect(repository.findByFilters(filters)).resolves.not.toThrow();
     });
   });
 

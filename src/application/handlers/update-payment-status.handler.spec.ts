@@ -35,7 +35,7 @@ describe('UpdatePaymentStatusHandler', () => {
       providers: [
         UpdatePaymentStatusHandler,
         {
-          provide: 'IPaymentRepository',
+          provide: IPaymentRepository,
           useValue: mockPaymentRepository,
         },
         {

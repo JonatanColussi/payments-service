@@ -25,7 +25,7 @@ describe('GetPaymentByIdHandler', () => {
       providers: [
         GetPaymentByIdHandler,
         {
-          provide: 'IPaymentRepository',
+          provide: IPaymentRepository,
           useValue: mockPaymentRepository,
         },
       ],
