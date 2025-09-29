@@ -291,8 +291,6 @@ src/
 | `PAYMENT_FAILURE_URL` | Failure redirect URL | - | No |
 | `PAYMENT_PENDING_URL` | Pending redirect URL | - | No |
 | `TEMPORAL_ADDRESS` | Temporal server address | `localhost:7233` | No |
-| `REDIS_HOST` | Redis host | `localhost` | No |
-| `REDIS_PORT` | Redis port | `6379` | No |
 
 ## 🐳 Docker Services
 
@@ -302,7 +300,6 @@ The `docker-compose.yml` includes:
 - **Temporal PostgreSQL**: Temporal workflow database
 - **Temporal Server**: Workflow orchestration engine
 - **Temporal Web UI**: Workflow monitoring interface
-- **Redis 7**: Caching and session storage
 
 ### Service Ports
 - **Application**: 3000
@@ -310,7 +307,6 @@ The `docker-compose.yml` includes:
 - **Temporal PostgreSQL**: 5433
 - **Temporal Server**: 7233 (gRPC), 7234 (Membership), 7235 (History), 7239 (Worker)
 - **Temporal Web UI**: 8080
-- **Redis**: 6379
 
 ## 🧪 Testing
 
@@ -452,7 +448,7 @@ This project uses GitHub Actions for automated CI/CD:
 
 #### Lint and Test (`lint-and-test.yml`)
 - **Triggers**: Push/PR to `main` or `develop` branches
-- **Services**: PostgreSQL 16, Redis 7
+- **Services**: PostgreSQL 16
 - **Steps**:
   - ESLint code quality checks
   - Prettier formatting validation
@@ -461,7 +457,7 @@ This project uses GitHub Actions for automated CI/CD:
   - Test coverage reporting
 
 #### Full CI/CD Pipeline (`ci.yml`)
-- **Matrix Testing**: Node.js 18.x and 20.x
+- **Node.js**: 20.x (LTS)
 - **Comprehensive Testing**: Unit, E2E, and integration tests
 - **Security Audit**: Dependency vulnerability scanning
 - **Docker Build**: Container image testing
