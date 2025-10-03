@@ -39,6 +39,7 @@ describe('TemporalWorkflowService', () => {
       cpf: '12345678901',
       description: 'Test payment',
       amount: 100.00,
+      preferenceUrl: 'https://mock-mercadopago-url.com/preference/123',
       payer: {
         email: 'test@test.com',
         name: 'Test User'
@@ -66,8 +67,7 @@ describe('TemporalWorkflowService', () => {
 
       expect(result).toEqual({
         workflowId: expect.stringContaining('credit-card-payment-test-payment-123'),
-        runId: 'test-run-id-456',
-        preferenceUrl: undefined
+        runId: 'test-run-id-456'
       });
     });
 
@@ -81,8 +81,7 @@ describe('TemporalWorkflowService', () => {
       // Assert
       expect(result).toEqual({
         workflowId: expect.stringContaining('credit-card-payment-test-payment-123'),
-        runId: 'mock-run-id',
-        preferenceUrl: 'https://mock-mercadopago-url.com'
+        runId: 'mock-run-id'
       });
     });
 
@@ -90,15 +89,8 @@ describe('TemporalWorkflowService', () => {
       // Arrange
       mockWorkflowClient.start.mockRejectedValue(new Error('Temporal connection failed'));
 
-      // Act
-      const result = await service.startCreditCardPaymentWorkflow(mockInput);
-
-      // Assert
-      expect(result).toEqual({
-        workflowId: expect.stringContaining('mock-credit-card-payment-test-payment-123'),
-        runId: 'mock-run-id',
-        preferenceUrl: 'https://mock-mercadopago-url.com'
-      });
+      // Act & Assert
+      await expect(service.startCreditCardPaymentWorkflow(mockInput)).rejects.toThrow('Temporal connection failed');
     });
 
     it('should handle workflow input without payer information', async () => {

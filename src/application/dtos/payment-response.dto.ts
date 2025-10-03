@@ -9,7 +9,13 @@ export class PaymentResponseDto {
   status: PaymentStatus;
   createdAt: Date;
   updatedAt: Date;
-  mercadoPagoPreferenceUrl?: string; // URL para redirecionamento no checkout
+
+  /**
+   * URL for MercadoPago checkout redirection.
+   * Present for CREDIT_CARD payments, null for other payment methods.
+   * Clients should redirect users to this URL to complete the payment.
+   */
+  preferenceUrl?: string;
 
   constructor(
     id: string,
@@ -20,7 +26,7 @@ export class PaymentResponseDto {
     status: PaymentStatus,
     createdAt: Date,
     updatedAt: Date,
-    mercadoPagoPreferenceUrl?: string,
+    preferenceUrl?: string,
   ) {
     this.id = id;
     this.cpf = cpf;
@@ -30,6 +36,6 @@ export class PaymentResponseDto {
     this.status = status;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
-    this.mercadoPagoPreferenceUrl = mercadoPagoPreferenceUrl;
+    this.preferenceUrl = preferenceUrl;
   }
 }

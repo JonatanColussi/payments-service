@@ -1,7 +1,6 @@
 // Activities simples para Temporal.io
 import {
   CreatePaymentInput,
-  CreateMercadoPagoPreferenceInput,
   UpdatePaymentStatusInput,
   CheckPaymentStatusInput,
   PaymentActivitiesService
@@ -21,14 +20,6 @@ export async function savePaymentToDatabase(input: CreatePaymentInput): Promise<
     return;
   }
   return activitiesService.savePaymentToDatabase(input);
-}
-
-export async function createMercadoPagoPreference(input: CreateMercadoPagoPreferenceInput): Promise<string> {
-  if (!activitiesService) {
-    console.log(`Mock: Creating MercadoPago preference for payment ${input.paymentId}`);
-    return 'https://mock-mercadopago-url.com';
-  }
-  return activitiesService.createMercadoPagoPreference(input);
 }
 
 export async function updatePaymentStatus(input: UpdatePaymentStatusInput): Promise<void> {

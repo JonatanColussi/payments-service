@@ -1,10 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { PaymentActivitiesService, CreatePaymentInput, CreateMercadoPagoPreferenceInput, UpdatePaymentStatusInput, CheckPaymentStatusInput } from './payment-activities.service';
+import { PaymentActivitiesService, CreatePaymentInput, UpdatePaymentStatusInput, CheckPaymentStatusInput } from './payment-activities.service';
 import { IPaymentRepository } from '../../../domain/interfaces';
 import { MercadoPagoService } from '../../external/mercadopago.service';
 import { Payment, PaymentStatus, PaymentMethod } from '../../../domain/entities';
 import { CPF, Money } from '../../../domain/value-objects';
-import { MercadoPagoPaymentItem } from '../../../domain/entities/mercadopago-payment.entity';
 
 describe('PaymentActivitiesService', () => {
   let service: PaymentActivitiesService;
@@ -93,90 +92,6 @@ describe('PaymentActivitiesService', () => {
 
       // Act & Assert
       await expect(service.savePaymentToDatabase(mockInput)).rejects.toThrow('Failed to save payment to database: Database connection failed');
-    });
-  });
-
-  describe('createMercadoPagoPreference', () => {
-    const mockItems: MercadoPagoPaymentItem[] = [
-      {
-        title: 'Test Payment',
-        description: 'Test payment description',
-        quantity: 1,
-        unit_price: 100.00,
-        currency_id: 'BRL'
-      }
-    ];
-
-    const mockInput: CreateMercadoPagoPreferenceInput = {
-      paymentId: 'test-payment-123',
-      items: mockItems,
-      payer: {
-        email: 'test@test.com',
-        name: 'Test User'
-      }
-    };
-
-    it('should create MercadoPago preference successfully', async () => {
-      // Arrange
-      const mockPreference = {
-        id: 'pref-123456789',
-        init_point: 'https://mercadopago.com/checkout/v1/redirect?pref_id=pref-123456789',
-        sandbox_init_point: 'https://sandbox.mercadopago.com/checkout/v1/redirect?pref_id=pref-123456789',
-        collector_id: 123456,
-        client_id: '654321',
-        payment_status: 'pending' as const
-      };
-
-      mercadoPagoService.createPreference.mockResolvedValue(mockPreference);
-
-      // Act
-      const result = await service.createMercadoPagoPreference(mockInput);
-
-      // Assert
-      expect(mercadoPagoService.createPreference).toHaveBeenCalledWith(
-        'test-payment-123',
-        mockItems,
-        mockInput.payer
-      );
-      expect(result).toBe('https://mercadopago.com/checkout/v1/redirect?pref_id=pref-123456789');
-    });
-
-    it('should create preference without payer information', async () => {
-      // Arrange
-      const inputWithoutPayer = {
-        ...mockInput,
-        payer: undefined
-      };
-
-      const mockPreference = {
-        id: 'pref-123456789',
-        init_point: 'https://mercadopago.com/checkout/v1/redirect?pref_id=pref-123456789',
-        sandbox_init_point: 'https://sandbox.mercadopago.com/checkout/v1/redirect?pref_id=pref-123456789',
-        collector_id: 123456,
-        client_id: '654321',
-        payment_status: 'pending' as const
-      };
-
-      mercadoPagoService.createPreference.mockResolvedValue(mockPreference);
-
-      // Act
-      const result = await service.createMercadoPagoPreference(inputWithoutPayer);
-
-      // Assert
-      expect(mercadoPagoService.createPreference).toHaveBeenCalledWith(
-        'test-payment-123',
-        mockItems,
-        undefined
-      );
-      expect(result).toBe('https://mercadopago.com/checkout/v1/redirect?pref_id=pref-123456789');
-    });
-
-    it('should handle MercadoPago service errors', async () => {
-      // Arrange
-      mercadoPagoService.createPreference.mockRejectedValue(new Error('MercadoPago API error'));
-
-      // Act & Assert
-      await expect(service.createMercadoPagoPreference(mockInput)).rejects.toThrow('Failed to create MercadoPago preference: MercadoPago API error');
     });
   });
 

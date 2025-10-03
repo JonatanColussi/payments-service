@@ -5,6 +5,7 @@ import { Payment, CPF, Money, PaymentValidationService, PaymentMethod } from '..
 import { IPaymentRepository } from '../../domain/interfaces';
 import { PaymentResponseDto } from '../dtos';
 import { IPaymentWorkflowService } from '../interfaces/payment-workflow.interface';
+import { MercadoPagoService } from '../../infrastructure/external/mercadopago.service';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
@@ -14,6 +15,7 @@ export class CreatePaymentHandler implements ICommandHandler<CreatePaymentComman
     private readonly paymentRepository: IPaymentRepository,
     private readonly publisher: EventPublisher,
     private readonly paymentWorkflowService: IPaymentWorkflowService,
+    private readonly mercadoPagoService: MercadoPagoService,
   ) {}
 
   async execute(command: CreatePaymentCommand): Promise<PaymentResponseDto> {
@@ -45,23 +47,39 @@ export class CreatePaymentHandler implements ICommandHandler<CreatePaymentComman
     amount: Money,
     paymentMethod: PaymentMethod
   ): Promise<PaymentResponseDto> {
-    // Para pagamentos com cartão de crédito, iniciamos o workflow do Temporal
-    // O pagamento será salvo no banco pelo workflow
+    // Step 1: Create MercadoPago preference BEFORE starting the workflow
+    const preference = await this.mercadoPagoService.createPreference(
+      paymentId,
+      [
+        {
+          title: description,
+          description: description,
+          quantity: 1,
+          unit_price: amount.getAmount(),
+          currency_id: 'BRL'
+        }
+      ],
+      {
+        // Aqui poderíamos extrair email/nome do CPF ou de outros dados do comando
+        email: undefined,
+        name: undefined
+      }
+    );
 
-    const workflowResult = await this.paymentWorkflowService.startCreditCardPaymentWorkflow({
+    // Step 2: Start the Temporal workflow with the preference URL already created
+    await this.paymentWorkflowService.startCreditCardPaymentWorkflow({
       paymentId,
       cpf: cpf.getValue(),
       description,
       amount: amount.getAmount(),
+      preferenceUrl: preference.init_point,
       payer: {
-        // Aqui poderíamos extrair email/nome do CPF ou de outros dados do comando
         email: undefined,
         name: undefined
       }
     });
 
-    // Retornar resposta com informações do workflow
-    // O status inicial será PENDING e será atualizado pelo workflow
+    // Step 3: Return response immediately with the preference URL
     return new PaymentResponseDto(
       paymentId,
       cpf.getValue(),
@@ -71,8 +89,7 @@ export class CreatePaymentHandler implements ICommandHandler<CreatePaymentComman
       'PENDING' as any,
       new Date(),
       new Date(),
-      // Incluir URL da preferência do Mercado Pago na resposta
-      workflowResult.preferenceUrl
+      preference.init_point
     );
   }
 

@@ -42,7 +42,15 @@ export class MercadoPagoService {
     try {
       this.logger.log(`Creating MercadoPago preference for payment ${paymentId}`);
 
-      const preferenceData = {
+      // Get back URLs from config
+      const successUrl = this.configService.get<string>('mercadopago.backUrls.success') ||
+                        this.configService.get<string>('PAYMENT_SUCCESS_URL');
+      const failureUrl = this.configService.get<string>('mercadopago.backUrls.failure') ||
+                        this.configService.get<string>('PAYMENT_FAILURE_URL');
+      const pendingUrl = this.configService.get<string>('mercadopago.backUrls.pending') ||
+                        this.configService.get<string>('PAYMENT_PENDING_URL');
+
+      const preferenceData: any = {
         items: items.map((item, index) => ({
           id: `item-${index}`,
           title: item.title,
@@ -54,26 +62,33 @@ export class MercadoPagoService {
         external_reference: paymentId,
         notification_url: this.configService.get<string>('mercadopago.webhookUrl') ||
                          this.configService.get<string>('MERCADOPAGO_WEBHOOK_URL'),
-        back_urls: {
-          success: this.configService.get<string>('mercadopago.backUrls.success') ||
-                  this.configService.get<string>('PAYMENT_SUCCESS_URL'),
-          failure: this.configService.get<string>('mercadopago.backUrls.failure') ||
-                  this.configService.get<string>('PAYMENT_FAILURE_URL'),
-          pending: this.configService.get<string>('mercadopago.backUrls.pending') ||
-                  this.configService.get<string>('PAYMENT_PENDING_URL')
-        },
-        auto_return: 'approved' as const,
         payment_methods: {
           excluded_payment_methods: [],
           excluded_payment_types: [],
           installments: 12
-        },
-        payer: payer ? {
-          email: payer.email,
-          name: payer.name
-        } : undefined
+        }
       };
 
+      // Add back_urls if at least one is configured
+      if (successUrl || failureUrl || pendingUrl) {
+        preferenceData.back_urls = {};
+        if (successUrl) preferenceData.back_urls.success = successUrl;
+        if (failureUrl) preferenceData.back_urls.failure = failureUrl;
+        if (pendingUrl) preferenceData.back_urls.pending = pendingUrl;
+
+        // Don't use auto_return for now - MercadoPago API seems to have issues with it
+        // User will need to manually return from checkout
+      }
+
+      // Only add payer if email or name is provided
+      if (payer?.email || payer?.name) {
+        preferenceData.payer = {
+          email: payer.email,
+          name: payer.name
+        };
+      }
+
+      this.logger.log(`Preference data: ${JSON.stringify(preferenceData, null, 2)}`);
       const response = await this.preference.create({ body: preferenceData });
 
       this.logger.log(`MercadoPago preference created successfully: ${response.id}`);

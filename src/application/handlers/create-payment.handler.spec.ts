@@ -6,6 +6,7 @@ import { IPaymentRepository } from '../../domain/interfaces';
 import { CPF, Money, Payment, PaymentMethod, PaymentStatus } from '../../domain';
 import { PaymentResponseDto } from '../dtos';
 import { IPaymentWorkflowService } from '../interfaces/payment-workflow.interface';
+import { MercadoPagoService } from '../../infrastructure/external/mercadopago.service';
 
 describe('CreatePaymentHandler', () => {
   let handler: CreatePaymentHandler;
@@ -36,6 +37,13 @@ describe('CreatePaymentHandler', () => {
     listActivePaymentWorkflows: jest.fn(),
   };
 
+  const mockMercadoPagoService = {
+    createPreference: jest.fn(),
+    getPaymentStatus: jest.fn(),
+    searchPaymentsByExternalReference: jest.fn(),
+    mapMercadoPagoStatusToPaymentStatus: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -51,6 +59,10 @@ describe('CreatePaymentHandler', () => {
         {
           provide: IPaymentWorkflowService,
           useValue: mockTemporalWorkflowService,
+        },
+        {
+          provide: MercadoPagoService,
+          useValue: mockMercadoPagoService,
         },
       ],
     }).compile();
@@ -205,17 +217,50 @@ describe('CreatePaymentHandler', () => {
         PaymentMethod.CREDIT_CARD
       );
 
+      const mockPreference = {
+        id: 'pref-123',
+        init_point: 'https://mercadopago.com/checkout/v1/redirect?pref_id=pref-123',
+        sandbox_init_point: 'https://sandbox.mercadopago.com',
+        collector_id: 123,
+        client_id: '456',
+        payment_status: 'pending' as const
+      };
+
+      mockMercadoPagoService.createPreference.mockResolvedValue(mockPreference);
+      mockTemporalWorkflowService.startCreditCardPaymentWorkflow.mockResolvedValue({
+        workflowId: 'workflow-123',
+        runId: 'run-123'
+      });
+
       // Act
       const result = await handler.execute(creditCardCommand);
 
       // Assert
       expect(result.paymentMethod).toBe(PaymentMethod.CREDIT_CARD);
       expect(result.status).toBe('PENDING');
+      expect(result.preferenceUrl).toBe('https://mercadopago.com/checkout/v1/redirect?pref_id=pref-123');
+      expect(mockMercadoPagoService.createPreference).toHaveBeenCalledWith(
+        expect.any(String),
+        [
+          {
+            title: 'Credit card payment',
+            description: 'Credit card payment',
+            quantity: 1,
+            unit_price: 1000.00,
+            currency_id: 'BRL'
+          }
+        ],
+        {
+          email: undefined,
+          name: undefined
+        }
+      );
       expect(mockTemporalWorkflowService.startCreditCardPaymentWorkflow).toHaveBeenCalledWith({
         paymentId: expect.any(String),
         cpf: '33258752036',
         description: 'Credit card payment',
         amount: 1000.00,
+        preferenceUrl: 'https://mercadopago.com/checkout/v1/redirect?pref_id=pref-123',
         payer: {
           email: undefined,
           name: undefined
@@ -269,6 +314,21 @@ describe('CreatePaymentHandler', () => {
         PaymentMethod.CREDIT_CARD
       );
 
+      const mockPreference = {
+        id: 'pref-456',
+        init_point: 'https://mercadopago.com/checkout/v1/redirect?pref_id=pref-456',
+        sandbox_init_point: 'https://sandbox.mercadopago.com',
+        collector_id: 123,
+        client_id: '456',
+        payment_status: 'pending' as const
+      };
+
+      mockMercadoPagoService.createPreference.mockResolvedValue(mockPreference);
+      mockTemporalWorkflowService.startCreditCardPaymentWorkflow.mockResolvedValue({
+        workflowId: 'workflow-456',
+        runId: 'run-456'
+      });
+
       // Act
       const result = await handler.execute(testCommand);
 
@@ -281,6 +341,7 @@ describe('CreatePaymentHandler', () => {
       expect(typeof result.id).toBe('string');
       expect(result.createdAt).toBeInstanceOf(Date);
       expect(result.updatedAt).toBeInstanceOf(Date);
+      expect(result.preferenceUrl).toBe('https://mercadopago.com/checkout/v1/redirect?pref_id=pref-456');
     });
   });
 });

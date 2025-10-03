@@ -3,7 +3,6 @@ import { IPaymentRepository } from '../../../domain/interfaces';
 import { MercadoPagoService } from '../../external/mercadopago.service';
 import { Payment, PaymentStatus, PaymentMethod } from '../../../domain/entities';
 import { CPF, Money } from '../../../domain/value-objects';
-import { MercadoPagoPaymentItem } from '../../../domain/entities/mercadopago-payment.entity';
 
 export interface CreatePaymentInput {
   paymentId: string;
@@ -11,15 +10,6 @@ export interface CreatePaymentInput {
   description: string;
   amount: number;
   paymentMethod: string;
-}
-
-export interface CreateMercadoPagoPreferenceInput {
-  paymentId: string;
-  items: MercadoPagoPaymentItem[];
-  payer?: {
-    email?: string;
-    name?: string;
-  };
 }
 
 export interface UpdatePaymentStatusInput {
@@ -67,24 +57,6 @@ export class PaymentActivitiesService {
     }
   }
 
-  async createMercadoPagoPreference(input: CreateMercadoPagoPreferenceInput): Promise<string> {
-    try {
-      this.logger.log(`Creating MercadoPago preference for payment ${input.paymentId}`);
-
-      const preference = await this.mercadoPagoService.createPreference(
-        input.paymentId,
-        input.items,
-        input.payer
-      );
-
-      this.logger.log(`MercadoPago preference created: ${preference.init_point}`);
-
-      return preference.init_point;
-    } catch (error) {
-      this.logger.error(`Failed to create MercadoPago preference: ${error.message}`, error.stack);
-      throw new Error(`Failed to create MercadoPago preference: ${error.message}`);
-    }
-  }
 
   async updatePaymentStatus(input: UpdatePaymentStatusInput): Promise<void> {
     try {

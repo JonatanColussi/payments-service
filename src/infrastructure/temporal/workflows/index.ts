@@ -7,6 +7,7 @@ export interface CreditCardPaymentInput {
   cpf: string;
   description: string;
   amount: number;
+  preferenceUrl: string;
   payer?: {
     email?: string;
     name?: string;
@@ -30,7 +31,6 @@ export const getPaymentStateQuery = defineQuery<PaymentWorkflowState>('getPaymen
 // Proxy das activities
 const {
   savePaymentToDatabase,
-  createMercadoPagoPreference,
   updatePaymentStatus,
   checkPaymentStatus,
   logActivity
@@ -75,7 +75,7 @@ export async function creditCardPaymentWorkflow(input: CreditCardPaymentInput): 
   setHandler(getPaymentStateQuery, () => workflowState);
 
   try {
-    // Etapa 1: Salvar pagamento no banco com status PENDING
+    // Etapa 1: Salvar pagamento no banco com status PENDING e preference URL
     await logActivity(`Starting credit card payment workflow for payment ${input.paymentId}`);
 
     await savePaymentToDatabase({
@@ -86,29 +86,13 @@ export async function creditCardPaymentWorkflow(input: CreditCardPaymentInput): 
       paymentMethod: 'CREDIT_CARD'
     });
 
-    await logActivity(`Payment ${input.paymentId} saved to database with PENDING status`);
-
-    // Etapa 2: Criar preferência no Mercado Pago
-    const preferenceUrl = await createMercadoPagoPreference({
-      paymentId: input.paymentId,
-      items: [
-        {
-          title: input.description,
-          description: input.description,
-          quantity: 1,
-          unit_price: input.amount,
-          currency_id: 'BRL'
-        }
-      ],
-      payer: input.payer
-    });
-
-    workflowState.mercadoPagoPreferenceUrl = preferenceUrl;
+    // Set preference URL in workflow state (already created before workflow started)
+    workflowState.mercadoPagoPreferenceUrl = input.preferenceUrl;
     workflowState.lastUpdated = new Date();
 
-    await logActivity(`MercadoPago preference created for payment ${input.paymentId}: ${preferenceUrl}`);
+    await logActivity(`Payment ${input.paymentId} saved to database with PENDING status and preference URL: ${input.preferenceUrl}`);
 
-    // Etapa 3: Aguardar callback ou fazer polling (com timeout)
+    // Etapa 2: Aguardar callback ou fazer polling (com timeout)
     const timeoutMinutes = 30;
     const pollingIntervalMinutes = 2;
     const maxPollingAttempts = timeoutMinutes / pollingIntervalMinutes;

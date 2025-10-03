@@ -20,11 +20,10 @@ export class TemporalWorkflowService implements IPaymentWorkflowService {
       this.logger.log(`Starting credit card payment workflow for payment ${input.paymentId}`);
 
       if (!this.client) {
-        this.logger.warn('Temporal client not available, using mock workflow');
+        this.logger.warn('Temporal client not available, workflow will run in mock mode');
         return {
           workflowId,
           runId: 'mock-run-id',
-          preferenceUrl: 'https://mock-mercadopago-url.com'
         };
       }
 
@@ -34,6 +33,7 @@ export class TemporalWorkflowService implements IPaymentWorkflowService {
         cpf: input.cpf,
         description: input.description,
         amount: input.amount,
+        preferenceUrl: input.preferenceUrl,
         payer: input.payer
       };
 
@@ -48,20 +48,10 @@ export class TemporalWorkflowService implements IPaymentWorkflowService {
       return {
         workflowId,
         runId: handle.firstExecutionRunId,
-        preferenceUrl: undefined // Será preenchido quando o workflow criar a preferência
       };
     } catch (error) {
       this.logger.error(`Failed to start credit card payment workflow: ${error.message}`, error.stack);
-
-      // Fallback para modo mock se Temporal não estiver disponível
-      const workflowId = `mock-credit-card-payment-${input.paymentId}-${uuidv4()}`;
-      this.logger.warn(`Using mock workflow due to Temporal error: ${workflowId}`);
-
-      return {
-        workflowId,
-        runId: 'mock-run-id',
-        preferenceUrl: 'https://mock-mercadopago-url.com'
-      };
+      throw error;
     }
   }
 

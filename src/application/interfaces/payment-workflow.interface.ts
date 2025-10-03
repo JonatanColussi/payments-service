@@ -5,6 +5,7 @@ export interface CreditCardPaymentWorkflowInput {
   cpf: string;
   description: string;
   amount: number;
+  preferenceUrl: string;
   payer?: {
     email?: string;
     name?: string;
@@ -14,7 +15,6 @@ export interface CreditCardPaymentWorkflowInput {
 export interface PaymentWorkflowResult {
   workflowId: string;
   runId: string;
-  preferenceUrl?: string;
 }
 
 export interface PaymentWorkflowState {
